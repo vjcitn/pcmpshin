@@ -1,3 +1,6 @@
+#' invoke app
+#' @param sce SingleCellExperiment
+#' @export
 runner = function(sce=pcmp::sce300xx) {
 stores = c(".pcmpTab", ".pcmpSelNum", ".pcmpSelCells")
  sapply(stores, function(x) if(x %in% ls(.GlobalEnv, all.names=TRUE))
