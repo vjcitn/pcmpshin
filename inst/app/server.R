@@ -78,7 +78,7 @@ basicServer <- function(sce) function(input, output, session) {
  output$accum = renderPlot({
  ans = list(cells = .GlobalEnv$.pcmpSelCells, limmaTab=.GlobalEnv$.pcmpTab)
  tmp = new("PcmpSels", cellSets=ans$cells, geneTable=ans$limmaTab)
- replay(pcmp::sce300xx, tmp, input$meth1, input$botx, input$boty) 
+ replay(sce, tmp, input$meth1, input$botx, input$boty) 
  })
     
 
