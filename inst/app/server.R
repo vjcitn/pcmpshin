@@ -122,6 +122,6 @@ output$summary <- DT::renderDataTable({
 library(SingleCellExperiment)
 library(pcmp)
 library(pcmpshin)
-load("mouse3k.rda")
-basicServer(mouse3k)
+load("mouse3kf.rda")
+basicServer(mouse3kf)
 

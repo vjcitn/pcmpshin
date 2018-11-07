@@ -1,7 +1,7 @@
 Package: pcmpshin
 Title: shiny app for pcmp
 Description: Compare projections for scRNA-seq.
-Version: 0.0.6
+Version: 0.0.7
 Author: Vince Carey
 Suggests: knitr, testthat
 Depends: pcmp, shiny, SingleCellExperiment, crosstalk
