@@ -81,6 +81,12 @@ basicServer <- function(sce) function(input, output, session) {
  replay(sce, tmp, input$meth1, input$botx, input$boty) 
  })
     
+output$scedump = renderPrint({
+    print(sce)
+})
+output$scedump2 = renderPrint({
+    print(metadata(sce))
+})
 
 output$summary <- DT::renderDataTable({
     df <- shared_dat$data(withSelection = TRUE) %>%
