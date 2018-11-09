@@ -85,7 +85,7 @@ output$scedump = renderPrint({
     print(sce)
 })
 output$scedump2 = renderPrint({
-    print(metadata(sce))
+    print(metadata(sce)[c("note", "origin")])
 })
 
 output$summary <- DT::renderDataTable({
@@ -128,6 +128,6 @@ output$summary <- DT::renderDataTable({
 library(SingleCellExperiment)
 library(pcmp)
 library(pcmpshin)
-load("mouse3kf.rda")
-basicServer(mouse3kf)
+load("rscmou.rda")
+basicServer(rscmou)
 

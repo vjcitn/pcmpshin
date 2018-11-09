@@ -63,5 +63,5 @@ See the 'about' tab for more information.", pkgVersion())),
 library(SingleCellExperiment)
 library(pcmp)
 library(pcmpshin)
-load("mouse3kf.rda")
-uiMaker(mouse3kf)
+load("rscmou.rda")
+uiMaker(rscmou)
