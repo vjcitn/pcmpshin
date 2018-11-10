@@ -1,6 +1,17 @@
+# server for pcmp app
+# defines data flow for a pair of projection types, each shown
+# in two view based on different choices of dimensions
 
 basicServer <- function(sce) function(input, output, session) {
+#SERVER <- function(input, output, session) {
+  requireNamespace("limma")
+#
+# add colnames as a column in colData -- uses .cellid field silently
+#
   sce$.cellid = colnames(sce)
+#
+# create a named data.frame combining the reducedDims with the colData
+#
   rd = reducedDims(sce)
   nmeth = length(rd) # list of matrices of projected data
   methnames = names(rd)
@@ -17,6 +28,9 @@ basicServer <- function(sce) function(input, output, session) {
   colnames(indf) = cn
   indf <- as.data.frame(cbind(indf, colData(sce)))
   
+#
+# build the formulas needed for d3scatter
+#
   fmlist = lapply(methnames, function(x) list())
   names(fmlist) = methnames
   for (i in 1:nmeth) {
@@ -25,17 +39,9 @@ basicServer <- function(sce) function(input, output, session) {
    names(fmlist[[i]]) = curtags
   }
   
-  #PCtags = paste0("PC", 1:ncomp)
-  #UMtags = paste0("UM", 1:ncomp)
-  #TStags = paste0("TS", 1:ncomp)
-  #PCfmlas = lapply(PCtags, function(x) as.formula(c("~", x)))
-  #UMfmlas = lapply(UMtags, function(x) as.formula(c("~", x)))
-  #TSfmlas = lapply(TStags, function(x) as.formula(c("~", x)))
-  #names(PCfmlas) = PCtags
-  #names(UMfmlas) = UMtags
-  #names(TSfmlas) = TStags
-  #fmlist = list(PC=PCfmlas, UM=UMfmlas, TS=TSfmlas)
-
+#
+# build the shared data
+#
   enhDf = reactive({
    indf$strat = colData(sce)[[input$pickedStrat]]
    indf$key = 1:nrow(indf)
@@ -44,6 +50,45 @@ basicServer <- function(sce) function(input, output, session) {
 
   shared_dat <- SharedData$new(enhDf) #enhDf, key=~key)
 
+#
+# set up reactive download entities: table of limma results, table of selected cells with selection sequence number
+#
+    output$downloadData <- downloadHandler(
+       filename = function() {
+         paste('data-', Sys.Date(), '.csv', sep='')
+       },
+       content = function(con) {
+         write.csv(.GlobalEnv$.pcmpTab, con)
+       }
+     )
+    output$downloadData2 <- downloadHandler(
+       filename = function() {
+         paste('data-', Sys.Date(), '.csv', sep='')
+       },
+       content = function(con) {
+         dat = .GlobalEnv$.pcmpSelCells
+         nsel = length(dat)
+         selind = rep(1:nsel,sapply(dat,length))
+         ans = data.frame(group=selind, cellid=unlist(dat))
+         write.csv(ans, con)
+       }
+     )
+
+#
+# for the 'about' tab, show the SCE in use and some metadata
+#
+
+    output$scedump = renderPrint({
+        print(sce)
+    })
+    output$scedump2 = renderPrint({
+        print(metadata(sce)[c("note", "origin")])
+    })
+
+
+#
+# produce the panels
+#
   output$scatter1 <- renderD3scatter({
     methx = paste0(input$meth1, input$topx)
     methy = paste0(input$meth1, input$topy)
@@ -75,18 +120,21 @@ basicServer <- function(sce) function(input, output, session) {
 #    scatterplot3js(PC1, PC2, PC3, crosstalk=shared_dat, brush=TRUE,
 #       color=colors)
 #    })
+
+#
+# collect the information on selections so far
+#
  output$accum = renderPlot({
  ans = list(cells = .GlobalEnv$.pcmpSelCells, limmaTab=.GlobalEnv$.pcmpTab)
  tmp = new("PcmpSels", cellSets=ans$cells, geneTable=ans$limmaTab)
  replay(sce, tmp, input$meth1, input$botx, input$boty) 
  })
     
-output$scedump = renderPrint({
-    print(sce)
-})
-output$scedump2 = renderPrint({
-    print(metadata(sce)[c("note", "origin")])
-})
+#
+# very rudimentary approach to acquiring a signature of a selected group of cells
+# use limma on log-transformed counts comparing selected to non-selected
+# could do something to balance sample sizes ...
+#
 
 output$summary <- DT::renderDataTable({
     df <- shared_dat$data(withSelection = TRUE) %>%
@@ -98,12 +146,11 @@ output$summary <- DT::renderDataTable({
     mm = stats::model.matrix(~sel, data=data.frame(sel=sel))
    showNotification(paste("starting table processing", date()), id="limnote")
     X = log(assay(sce)+1)
-    f1 = limma::lmFit(X, mm)
-    ef1 = limma::eBayes(f1)
-  print(paste0("finish lmFit", date()))
+    f1 = lmFit(X, mm)
+    ef1 = eBayes(f1)
     options(digits=3)
 
-    tt = limma::topTable(ef1, 2, n=20)
+    tt = topTable(ef1, 2, n=20)
     if (!(".pcmpSelNum" %in% ls(.GlobalEnv, all.names=TRUE))) assign(".pcmpSelNum", 1, .GlobalEnv)
       else assign(".pcmpSelNum", .GlobalEnv$.pcmpSelNum + 1, .GlobalEnv)
     if (!(".pcmpSelCells" %in% ls(.GlobalEnv, all.names=TRUE))) assign(".pcmpSelCells", list(df$.cellid), .GlobalEnv)
@@ -116,6 +163,10 @@ output$summary <- DT::renderDataTable({
     ans
   })
 
+#
+# prepare stop button
+#
+
    observe({
                     if(input$btnSend > 0)
                         isolate({
@@ -124,10 +175,10 @@ output$summary <- DT::renderDataTable({
            })  
   } # end server
 
-
 library(SingleCellExperiment)
 library(pcmp)
 library(pcmpshin)
+library(limma)
 load("rscmou.rda")
 basicServer(rscmou)
 
